@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Book an Appointment — VJ Signature Salon</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="booking-shell">
+  <header class="booking-header">
+    <div class="wrap booking-brand">
+      <img id="bBrandLogo" src="" alt="" style="display:none;">
+      <div>
+        <div class="booking-brand-name" id="bBrandName">VJ Signature Salon</div>
+        <div class="booking-brand-sub">Book an appointment</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="steps-crumb" id="stepsCrumb">
+      <span data-step="0">Professional</span><span class="sep">›</span>
+      <span data-step="1">Service</span><span class="sep">›</span>
+      <span data-step="2">Time</span><span class="sep">›</span>
+      <span data-step="3">Done</span>
+    </div>
+
+    <div class="booking-layout">
+      <div>
+        <a class="back-link" id="backLink" style="display:none;">‹ Back</a>
+
+        <!-- STEP 0: PROFESSIONAL -->
+        <div class="booking-step" id="step-professional">
+          <h2>Choose a professional</h2>
+          <div class="prof-grid" id="profGrid">
+            <p style="color:var(--text-soft);">Loading…</p>
+          </div>
+        </div>
+
+        <!-- STEP 1: SERVICE -->
+        <div class="booking-step" id="step-service" style="display:none;">
+          <h2>Choose a service</h2>
+          <div class="service-grid-wizard" id="serviceGrid">
+            <p style="color:var(--text-soft);">Loading…</p>
+          </div>
+          <div class="continue-bar">
+            <button class="btn btn-primary" id="serviceContinueBtn" disabled>Continue</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: TIME -->
+        <div class="booking-step" id="step-time" style="display:none;">
+          <h2>Choose a time</h2>
+          <div class="slot-label" style="margin-top:0;">Select date</div>
+          <div class="date-row" id="dateRow"></div>
+          <div id="slotsWrap">
+            <p style="color:var(--text-soft);">Select a date to view available slots.</p>
+          </div>
+          <div class="continue-bar">
+            <button class="btn btn-primary" id="timeContinueBtn" disabled>Continue</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: DETAILS -->
+        <div class="booking-step" id="step-details" style="display:none;">
+          <h2>Almost there!</h2>
+          <p style="color:var(--text-soft); margin-top:-16px; margin-bottom:26px;">Enter your details to confirm the booking.</p>
+          <form class="wizard-form" id="detailsForm">
+            <div class="field">
+              <label style="display:block; font-size:0.82rem; color:var(--brass-light); margin-bottom:6px;">Full name</label>
+              <input type="text" id="custName" required>
+            </div>
+            <div class="field">
+              <label style="display:block; font-size:0.82rem; color:var(--brass-light); margin-bottom:6px;">Mobile number (10 digits)</label>
+              <div class="phone-input">
+                <span class="phone-prefix">+91</span>
+                <input type="tel" id="custMobile" required maxlength="10" pattern="\d{10}" placeholder="98765 43210">
+              </div>
+            </div>
+            <div class="field">
+              <label style="display:block; font-size:0.82rem; color:var(--brass-light); margin-bottom:6px;">Special notes or preferences (optional)</label>
+              <textarea id="custNotes" rows="3"></textarea>
+            </div>
+            <div class="error-msg" id="bookingError"></div>
+            <div class="continue-bar">
+              <button type="submit" class="btn btn-primary btn-full" id="confirmBtn" disabled>Confirm Booking</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- STEP 4: DONE -->
+        <div class="booking-step" id="step-done" style="display:none;">
+          <div class="done-box">
+            <div class="check">✓</div>
+            <h2>Booking confirmed!</h2>
+            <div class="order-id-badge" id="doneOrderId" style="display:none;"></div>
+            <p id="doneMessage">We'll see you soon. A confirmation has been noted for your appointment.</p>
+            <p class="done-hint">Save your order ID — mention it if you call or message the salon.</p>
+            <div class="cta-row" style="justify-content:center; margin-top:30px;">
+              <a href="index.html" class="btn btn-ghost">Back to site</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="order-summary">
+        <h3>Your order</h3>
+        <div class="sub" id="orderSalonName">VJ Signature Salon</div>
+        <div id="orderLines">
+          <div class="order-empty">Nothing selected yet</div>
+        </div>
+        <div class="order-total" id="orderTotal" style="display:none;">
+          <span>Total</span>
+          <span id="orderTotalAmt"></span>
+        </div>
+        <div class="order-total note" id="orderNote" style="display:none; border:none; padding-top:2px; margin-top:0;">Final price confirmed at salon</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="book.js"></script>
+</body>
+</html>

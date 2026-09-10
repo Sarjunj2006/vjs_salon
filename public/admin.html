@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin — VJ Signature Salon</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="admin-shell">
+
+  <!-- LOGIN VIEW -->
+  <div id="loginView">
+    <div class="login-box">
+      <h1>Admin login</h1>
+      <p>Manage services, team and site details for VJ Signature Salon.</p>
+      <form id="loginForm">
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Log in</button>
+        <div class="error-msg" id="loginError"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="dashboardView" style="display:none;">
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">VJ <span>Signature Salon</span> <span class="pill" style="margin-left:10px;">Admin</span></div>
+        <div style="display:flex; gap:14px; align-items:center;">
+          <a href="index.html" target="_blank" class="btn btn-ghost btn-small">View site</a>
+          <button id="logoutBtn" class="btn btn-ghost btn-small">Log out</button>
+        </div>
+      </div>
+
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="bookings">Bookings</button>
+        <button class="admin-tab" data-tab="services">Services</button>
+        <button class="admin-tab" data-tab="team">Team</button>
+        <button class="admin-tab" data-tab="settings">Settings</button>
+      </div>
+
+      <!-- BOOKINGS -->
+      <div class="admin-panel active" id="panel-bookings">
+        <div id="bookingsList"></div>
+      </div>
+
+      <!-- SERVICES -->
+      <div class="admin-panel" id="panel-services">
+        <div class="form-card">
+          <h3 id="serviceFormTitle">Add a service</h3>
+          <form id="serviceForm">
+            <input type="hidden" id="serviceId">
+            <div class="form-row">
+              <div class="field"><label>Name</label><input type="text" id="serviceName" required></div>
+              <div class="field"><label>Price (e.g. "From ₹499" or "₹399")</label><input type="text" id="servicePrice" required></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>Duration (e.g. "45 min")</label><input type="text" id="serviceDuration"></div>
+              <div class="field"><label>Description</label><input type="text" id="serviceDescription"></div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button type="submit" class="btn btn-primary btn-small" id="serviceSubmitBtn">Add service</button>
+              <button type="button" class="btn btn-ghost btn-small" id="serviceCancelBtn" style="display:none;">Cancel edit</button>
+            </div>
+            <div class="success-msg" id="serviceMsg"></div>
+          </form>
+        </div>
+        <div id="servicesList"></div>
+      </div>
+
+      <!-- TEAM -->
+      <div class="admin-panel" id="panel-team">
+        <div class="form-card">
+          <h3 id="teamFormTitle">Add a stylist</h3>
+          <form id="teamForm">
+            <input type="hidden" id="teamId">
+            <div class="form-row">
+              <div class="field"><label>Name</label><input type="text" id="teamName" required></div>
+              <div class="field"><label>Role / specialty</label><input type="text" id="teamRoleInput" placeholder="e.g. Senior Stylist · Color"></div>
+            </div>
+            <div class="field">
+              <label>Photo (optional)</label>
+              <div class="dropzone" id="teamPhotoDropzone">
+                <input type="file" id="teamPhotoFile" accept="image/*" hidden>
+                <img id="teamPhotoPreview" class="dropzone-preview" style="display:none;">
+                <div class="dropzone-inner" id="teamPhotoPrompt">
+                  <p>Drag &amp; drop an image here, or <span class="dropzone-browse">browse</span></p>
+                  <p class="dropzone-hint">JPG, PNG or WebP, up to 8MB</p>
+                </div>
+                <button type="button" class="dropzone-remove" id="teamPhotoRemove" style="display:none;">Remove</button>
+              </div>
+              <input type="hidden" id="teamPhoto">
+              <div class="error-msg" id="teamPhotoError"></div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button type="submit" class="btn btn-primary btn-small" id="teamSubmitBtn">Add stylist</button>
+              <button type="button" class="btn btn-ghost btn-small" id="teamCancelBtn" style="display:none;">Cancel edit</button>
+            </div>
+            <div class="success-msg" id="teamMsg"></div>
+          </form>
+        </div>
+        <div id="teamList"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="admin-panel" id="panel-settings">
+        <div class="form-card">
+          <h3>Salon details</h3>
+          <form id="settingsForm">
+            <div class="form-row">
+              <div class="field"><label>Salon name</label><input type="text" id="setName"></div>
+              <div class="field"><label>Area / neighbourhood</label><input type="text" id="setArea"></div>
+            </div>
+            <div class="field"><label>Tagline (hero headline)</label><input type="text" id="setTagline"></div>
+            <div class="field"><label>Hero description</label><textarea id="setHeroDesc"></textarea></div>
+            <div class="field"><label>Full address</label><textarea id="setAddress"></textarea></div>
+            <div class="form-row">
+              <div class="field"><label>Phone (with country code, e.g. +919361285562)</label><input type="text" id="setPhone"></div>
+              <div class="field"><label>Phone display text</label><input type="text" id="setPhoneDisplay"></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>Hours</label><input type="text" id="setHours"></div>
+            </div>
+            <div class="field">
+              <label>Logo</label>
+              <div class="dropzone" id="setLogoDropzone">
+                <input type="file" id="setLogoFile" accept="image/*" hidden>
+                <img id="setLogoPreview" class="dropzone-preview" style="display:none;">
+                <div class="dropzone-inner" id="setLogoPrompt">
+                  <p>Drag &amp; drop an image here, or <span class="dropzone-browse">browse</span></p>
+                  <p class="dropzone-hint">JPG, PNG or WebP, up to 8MB</p>
+                </div>
+                <button type="button" class="dropzone-remove" id="setLogoRemove" style="display:none;">Remove</button>
+              </div>
+              <input type="hidden" id="setLogo">
+              <div class="error-msg" id="setLogoError"></div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-small">Save settings</button>
+            <div class="success-msg" id="settingsMsg"></div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

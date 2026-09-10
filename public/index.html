@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VJ Signature Salon — Coimbatore</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-nav">
+  <div class="nav-inner">
+    <a href="#" class="brand" id="brandLink">
+      <img id="brandLogo" src="" alt="" style="display:none;">
+      <span id="brandName">VJ <span>Signature Salon</span></span>
+    </a>
+    <nav class="links" id="navLinks">
+      <a href="#team">Stylists</a>
+      <a href="#pricing">Services</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">Visit</a>
+    </nav>
+    <a href="book.html" id="navCta" class="nav-cta">Book Appointment</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow" id="heroArea">Coimbatore</div>
+      <h1 id="heroTagline">Hair, cut with intention</h1>
+      <p class="hero-copy" id="heroDesc"></p>
+      <div class="cta-row">
+        <a href="book.html" id="heroCallBtn" class="btn btn-primary">Book an Appointment</a>
+        <a href="#" id="heroWaBtn" class="btn btn-ghost">Message on WhatsApp</a>
+      </div>
+    </div>
+    <div class="hero-aside">
+      <div class="stat">7+</div>
+      <p>years of hands-on cutting, coloring and grooming experience across our senior stylist team.</p>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-tag">The Team</div>
+      <h2>Stylists who listen before they cut</h2>
+      <p class="section-desc">Every consultation starts with a conversation, not a template.</p>
+    </div>
+    <div class="team-row" id="teamRow">
+      <p style="color:var(--text-soft);">Loading team…</p>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-tag">Services &amp; Pricing</div>
+      <h2>Straightforward pricing, no surprises</h2>
+      <p class="section-desc">Every price is a starting point — your stylist will confirm the final cost during consultation based on hair length and complexity.</p>
+    </div>
+    <div class="price-list" id="priceList">
+      <p style="color:var(--text-soft); padding:24px 0;">Loading services…</p>
+    </div>
+    <div class="cta-row" style="margin-top:36px;">
+      <a href="book.html" class="btn btn-primary">Book a Service</a>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-tag">FAQ</div>
+      <h2>Common questions</h2>
+    </div>
+    <div>
+      <details class="faq-item" open>
+        <summary class="faq-q">What are your hours? <span class="plus">+</span></summary>
+        <div class="faq-a" id="faqHours">Mon – Sun: 10 AM – 8 PM</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">Do I need to book in advance? <span class="plus">+</span></summary>
+        <div class="faq-a">Booking ahead guarantees your preferred stylist and time. Walk-ins are welcome when we have space.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">What payment methods do you accept? <span class="plus">+</span></summary>
+        <div class="faq-a">UPI, cards, and cash.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">What's your cancellation policy? <span class="plus">+</span></summary>
+        <div class="faq-a">We ask for at least a few hours' notice for cancellations.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="wrap contact-grid">
+    <div>
+      <div class="section-tag">Visit Us</div>
+      <h2>Find the studio</h2>
+      <div class="contact-item">
+        <div class="label">Address</div>
+        <div class="value" id="contactAddress"></div>
+      </div>
+      <div class="contact-item">
+        <div class="label">Hours</div>
+        <div class="value" id="contactHours"></div>
+      </div>
+      <div class="contact-item">
+        <div class="label">Phone</div>
+        <div class="value"><a href="#" id="contactPhone"></a></div>
+      </div>
+      <div class="contact-item">
+        <div class="label">WhatsApp</div>
+        <div class="value"><a href="#" id="contactWa">Message us</a></div>
+      </div>
+    </div>
+    <div class="map-box">Embed a Google Maps location or a photo of your storefront here</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-row">
+    <div class="brand" id="footerBrand">VJ <span>Signature Salon</span></div>
+    <div class="footer-links">
+      <a href="#team">Stylists</a>
+      <a href="#pricing">Services</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">Visit</a>
+    </div>
+    <div class="footer-note" id="footerNote">© 2026 VJ Signature Salon, Coimbatore.</div>
+  </div>
+</footer>
+
+<a href="book.html" class="fab-book">Book Now ↗</a>
+
+<div class="mobile-bar">
+  <a href="book.html">Book Now</a>
+  <a href="#" id="mobileCall">Call</a>
+  <a href="#" id="mobileWa" class="whatsapp">WhatsApp</a>
+</div>
+
+<script>
+  const toggle = document.getElementById('navToggle');
+  const links = document.getElementById('navLinks');
+  toggle.addEventListener('click', () => links.classList.toggle('open'));
+  links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+
+  function waLink(phone) {
+    return 'https://wa.me/' + (phone || '').replace(/[^\d]/g, '');
+  }
+  function telLink(phone) {
+    return 'tel:' + phone;
+  }
+
+  async function loadSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      const s = await res.json();
+
+      document.title = s.salonName + ' — Coimbatore';
+      document.getElementById('heroArea').textContent = s.area;
+      document.getElementById('heroTagline').textContent = s.tagline;
+      document.getElementById('heroDesc').textContent = s.heroDescription;
+      document.getElementById('faqHours').textContent = s.hours;
+      document.getElementById('contactAddress').textContent = s.address;
+      document.getElementById('contactHours').textContent = s.hours;
+      document.getElementById('footerNote').textContent = '© ' + new Date().getFullYear() + ' ' + s.salonName + ', Coimbatore.';
+
+      const phoneEl = document.getElementById('contactPhone');
+      phoneEl.textContent = s.phoneDisplay || s.phone;
+      phoneEl.href = telLink(s.phone);
+
+      [ 'mobileCall' ].forEach(id => {
+        document.getElementById(id).href = telLink(s.phone);
+      });
+      [ 'heroWaBtn', 'contactWa', 'mobileWa' ].forEach(id => {
+        document.getElementById(id).href = waLink(s.phone);
+      });
+
+      if (s.logoUrl) {
+        const logo = document.getElementById('brandLogo');
+        logo.src = s.logoUrl;
+        logo.alt = s.salonName + ' logo';
+        logo.style.display = 'block';
+      }
+    } catch (e) {
+      console.error('Failed to load settings', e);
+    }
+  }
+
+  async function loadServices() {
+    const listEl = document.getElementById('priceList');
+    try {
+      const res = await fetch('/api/services');
+      const services = await res.json();
+      if (!services.length) {
+        listEl.innerHTML = '<p style="color:var(--text-soft); padding:24px 0;">Services coming soon.</p>';
+        return;
+      }
+      listEl.innerHTML = services.map(s => `
+        <div class="price-row">
+          <div><h3>${escapeHtml(s.name)}</h3><p>${escapeHtml(s.description)}</p></div>
+          <div class="price-time">${escapeHtml(s.duration)}</div>
+          <div class="price-amt">${escapeHtml(s.price)}</div>
+        </div>
+      `).join('');
+    } catch (e) {
+      listEl.innerHTML = '<p style="color:var(--text-soft); padding:24px 0;">Could not load services right now.</p>';
+    }
+  }
+
+  async function loadTeam() {
+    const rowEl = document.getElementById('teamRow');
+    try {
+      const res = await fetch('/api/team');
+      const team = await res.json();
+      if (!team.length) {
+        rowEl.innerHTML = '<p style="color:var(--text-soft);">Team coming soon.</p>';
+        return;
+      }
+      rowEl.innerHTML = team.map(t => `
+        <div class="stylist">
+          <div class="stylist-photo" style="${t.photoUrl ? `background-image:url('${t.photoUrl}')` : ''}">${t.photoUrl ? '' : 'Photo'}</div>
+          <div class="stylist-info"><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.role)}</p></div>
+        </div>
+      `).join('');
+    } catch (e) {
+      rowEl.innerHTML = '<p style="color:var(--text-soft);">Could not load team right now.</p>';
+    }
+  }
+
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, m => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[m]));
+  }
+
+  loadSettings();
+  loadServices();
+  loadTeam();
+</script>
+
+</body>
+</html>
