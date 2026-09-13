@@ -21,6 +21,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// TEMPORARY DEBUG — remove after diagnosing the Cloudinary 403 issue
+console.log('[DEBUG] Cloudinary env check:',
+  JSON.stringify(process.env.CLOUDINARY_CLOUD_NAME),
+  JSON.stringify(process.env.CLOUDINARY_API_KEY),
+  JSON.stringify(process.env.CLOUDINARY_API_SECRET)
+);
+
 app.use(express.json({
   verify: (req, res, buf) => { req.rawBody = buf; }
 }));
