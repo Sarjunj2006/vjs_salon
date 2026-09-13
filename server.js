@@ -73,7 +73,7 @@ app.post('/api/upload', requireAuth, (req, res) => {
       const result = await uploadToCloudinary(req.file.buffer);
       res.json({ url: result.secure_url });
     } catch (uploadErr) {
-      console.error('Cloudinary upload failed:', uploadErr.message);
+      console.error('Cloudinary upload failed:', JSON.stringify(uploadErr, Object.getOwnPropertyNames(uploadErr)));
       res.status(502).json({ error: 'Could not upload image. Please try again.' });
     }
   });
