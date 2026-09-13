@@ -2,22 +2,28 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
 const { readDB, writeDB, ensureReady } = require('./db');
-const { createBooking } = require('./booking-logic');
+const { createBooking, findBookingByOrderId } = require('./booking-logic');
 const { handleIncomingMessage } = require('./whatsapp-agent');
 const { sendWhatsAppMessage, notifyBooking } = require('./whatsapp-client');
+const payments = require('./payments');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'vjsalon2026';
-const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
 const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'vj-signature-salon-dev-secret',
   resave: false,
@@ -31,19 +37,39 @@ function newId(prefix) {
 }
 
 // ---------- file uploads ----------
+// Uploaded to Cloudinary (persistent, CDN-hosted) instead of local disk or
+// the database — keeps Postgres lean and images load fast for customers.
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      cb(null, newId('img') + ext);
-    }
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024 }, // 8MB
   fileFilter: (req, file, cb) => {
     const ok = /^image\/(jpeg|png|webp|gif|avif)$/.test(file.mimetype);
     cb(ok ? null : new Error('Only image files are allowed'), ok);
   }
+});
+
+function uploadToCloudinary(buffer) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'vj-signature-salon' },
+      (err, result) => err ? reject(err) : resolve(result)
+    );
+    stream.end(buffer);
+  });
+}
+
+app.post('/api/upload', requireAuth, (req, res) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
+    if (!req.file) return res.status(400).json({ error: 'No file received' });
+    try {
+      const result = await uploadToCloudinary(req.file.buffer);
+      res.json({ url: result.secure_url });
+    } catch (uploadErr) {
+      console.error('Cloudinary upload failed:', uploadErr.message);
+      res.status(502).json({ error: 'Could not upload image. Please try again.' });
+    }
+  });
 });
 
 // ---------- auth ----------
@@ -220,6 +246,78 @@ app.delete('/api/bookings/:id', requireAuth, async (req, res) => {
   if (db.bookings.length === before) return res.status(404).json({ error: 'Booking not found' });
   await writeDB(db);
   res.json({ ok: true });
+});
+
+// ---------- payments (Razorpay) ----------
+
+// Website: create a Razorpay Order for the Checkout popup.
+app.post('/api/payments/create-order', async (req, res) => {
+  const db = await readDB();
+  if (!db.settings.depositEnabled) return res.json({ skip: true });
+  if (!payments.isConfigured()) return res.status(503).json({ error: 'Payments are not set up yet.' });
+  const { orderId } = req.body || {};
+  if (!orderId) return res.status(400).json({ error: 'orderId is required' });
+  try {
+    const amountPaise = Math.round((db.settings.depositAmount || 50) * 100);
+    const order = await payments.createOrder(orderId, amountPaise);
+    res.json(order);
+  } catch (err) {
+    console.error('Razorpay create-order failed:', err.message);
+    res.status(502).json({ error: 'Could not start payment. Please try again.' });
+  }
+});
+
+// Website: verify the signature Razorpay Checkout hands back after payment.
+app.post('/api/payments/verify', async (req, res) => {
+  const { bookingOrderId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+  if (!bookingOrderId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return res.status(400).json({ error: 'Missing payment verification details' });
+  }
+  const valid = payments.verifyCheckoutSignature({ razorpay_order_id, razorpay_payment_id, razorpay_signature });
+  if (!valid) return res.status(400).json({ error: 'Payment verification failed' });
+
+  const db = await readDB();
+  const booking = findBookingByOrderId(db, bookingOrderId);
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  booking.paymentStatus = 'paid';
+  booking.paymentId = razorpay_payment_id;
+  booking.paymentAmount = Math.round((db.settings.depositAmount || 50) * 100);
+  await writeDB(db);
+  res.json({ ok: true });
+});
+
+// Razorpay server-to-server webhook — mainly for WhatsApp payment links,
+// since there's no browser callback in that flow. Also a safety net for
+// website payments in case the browser closes before /verify runs.
+app.post('/api/payments/webhook', async (req, res) => {
+  const signature = req.headers['x-razorpay-signature'];
+  const valid = payments.verifyWebhookSignature(req.rawBody, signature);
+  if (!valid) return res.sendStatus(400);
+  res.sendStatus(200); // acknowledge immediately
+
+  try {
+    const event = req.body;
+    const paymentLinkEntity = event?.payload?.payment_link?.entity;
+    const bookingOrderId = paymentLinkEntity?.reference_id || paymentLinkEntity?.notes?.booking_order_id;
+    const paymentId = event?.payload?.payment?.entity?.id;
+
+    if (event.event === 'payment_link.paid' && bookingOrderId) {
+      const db = await readDB();
+      const booking = findBookingByOrderId(db, bookingOrderId);
+      if (booking && booking.paymentStatus !== 'paid') {
+        booking.paymentStatus = 'paid';
+        booking.paymentId = paymentId || null;
+        booking.paymentAmount = Math.round((db.settings.depositAmount || 50) * 100);
+        await writeDB(db);
+        if (booking.source === 'whatsapp') {
+          await sendWhatsAppMessage(booking.mobile.length === 10 ? '91' + booking.mobile : booking.mobile,
+            `✅ Payment received for booking ${booking.orderId}! We'll see you ${booking.dateLabel} at ${booking.time}.`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Razorpay webhook processing error:', err.message);
+  }
 });
 
 // ---------- WhatsApp webhook (Meta Cloud API) ----------

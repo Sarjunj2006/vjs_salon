@@ -186,6 +186,9 @@ async function loadBookings() {
               <span class="order-id-pill">${escapeHtml(b.orderId || '—')}</span>
               ${escapeHtml(b.name)} · ${escapeHtml(b.mobile)}
               ${b.source === 'whatsapp' ? '<span class="status-pill status-whatsapp">WhatsApp</span>' : ''}
+              ${b.paymentStatus === 'paid'
+                ? '<span class="status-pill status-paid">Paid</span>'
+                : '<span class="status-pill status-unpaid">Unpaid</span>'}
               ${isDone ? '<span class="status-pill status-done">Completed</span>' : ''}
             </h3>
             <p>${escapeHtml(b.serviceName)} with ${escapeHtml(b.professionalName)}</p>
@@ -422,8 +425,18 @@ async function loadSettings() {
   document.getElementById('setPhone').value = s.phone || '';
   document.getElementById('setPhoneDisplay').value = s.phoneDisplay || '';
   document.getElementById('setHours').value = s.hours || '';
+  document.getElementById('setWaBotNumber').value = s.whatsappBotNumber || '';
+  document.getElementById('setDepositEnabled').checked = s.depositEnabled !== false;
+  document.getElementById('setDepositAmount').value = s.depositAmount ?? 50;
+  updateDepositFieldVisibility();
   logoUploader.setValue(s.logoUrl || '');
 }
+
+function updateDepositFieldVisibility() {
+  document.getElementById('depositAmountField').style.display =
+    document.getElementById('setDepositEnabled').checked ? 'block' : 'none';
+}
+document.getElementById('setDepositEnabled').addEventListener('change', updateDepositFieldVisibility);
 
 document.getElementById('settingsForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -436,6 +449,9 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
     phone: document.getElementById('setPhone').value,
     phoneDisplay: document.getElementById('setPhoneDisplay').value,
     hours: document.getElementById('setHours').value,
+    whatsappBotNumber: document.getElementById('setWaBotNumber').value,
+    depositEnabled: document.getElementById('setDepositEnabled').checked,
+    depositAmount: parseFloat(document.getElementById('setDepositAmount').value) || 50,
     logoUrl: document.getElementById('setLogo').value
   };
   const msgEl = document.getElementById('settingsMsg');

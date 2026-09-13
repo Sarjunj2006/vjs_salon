@@ -10,6 +10,8 @@ const state = {
 
 let team = [];
 let services = [];
+let salonName = 'the salon';
+let brassColor = '#b8863a';
 
 function escapeHtml(str) {
   return (str || '').replace(/[&<>"']/g, m => ({
@@ -30,6 +32,7 @@ async function boot() {
     document.getElementById('bBrandName').textContent = settings.salonName;
     document.getElementById('orderSalonName').textContent = settings.salonName;
     document.title = 'Book an Appointment — ' + settings.salonName;
+    salonName = settings.salonName;
     if (settings.logoUrl) {
       const logo = document.getElementById('bBrandLogo');
       logo.src = settings.logoUrl;
@@ -266,11 +269,9 @@ document.getElementById('detailsForm').addEventListener('submit', async (e) => {
     });
     const data = await res.json();
     if (res.ok) {
-      document.getElementById('doneOrderId').textContent = 'Order ID: ' + data.orderId;
-      document.getElementById('doneOrderId').style.display = 'inline-block';
-      document.getElementById('doneMessage').textContent =
-        `We'll see you ${state.dateLabel} at ${state.time} for your ${state.service.name}.`;
-      goToStep(4);
+      state.bookingOrderId = data.orderId;
+      confirmBtn.textContent = 'Opening payment…';
+      await startPayment(data);
     } else {
       errEl.textContent = data.error || 'Something went wrong. Please try again.';
       confirmBtn.disabled = false;
@@ -282,6 +283,80 @@ document.getElementById('detailsForm').addEventListener('submit', async (e) => {
     confirmBtn.textContent = 'Confirm Booking';
   }
 });
+
+// ---------- payment (Razorpay Checkout) ----------
+async function startPayment(booking) {
+  try {
+    const orderRes = await fetch('/api/payments/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: booking.orderId })
+    });
+    if (!orderRes.ok) {
+      // Payments not configured, or Razorpay hiccup — don't block the booking itself.
+      showDone(booking, 'unpaid');
+      return;
+    }
+    const order = await orderRes.json();
+    if (order.skip) {
+      // Admin has turned the deposit requirement off — no payment needed at all.
+      showDone(booking, 'not_required');
+      return;
+    }
+
+    const rzp = new Razorpay({
+      key: order.keyId,
+      amount: order.amount,
+      currency: 'INR',
+      order_id: order.orderId,
+      name: salonName,
+      description: `Booking deposit — ${booking.orderId}`,
+      prefill: { name: custName.value.trim(), contact: '+91' + custMobile.value.trim() },
+      theme: { color: brassColor },
+      // UPI-only restriction removed temporarily — re-add
+      // method: { upi: '1', card: '0', netbanking: '0', wallet: '0', paylater: '0', emi: '0' }
+      // once UPI is approved on the Razorpay account (needs the paid KYC verification).
+      handler: async function (response) {
+        try {
+          const verifyRes = await fetch('/api/payments/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bookingOrderId: booking.orderId,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            })
+          });
+          showDone(booking, verifyRes.ok ? 'paid' : 'unpaid');
+        } catch (e) {
+          showDone(booking, 'unpaid');
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          // Customer closed the popup without paying — booking still exists, just unpaid.
+          showDone(booking, 'unpaid');
+        }
+      }
+    });
+    rzp.open();
+  } catch (e) {
+    showDone(booking, 'unpaid');
+  }
+}
+
+function showDone(booking, paymentState) {
+  document.getElementById('doneOrderId').textContent = 'Order ID: ' + booking.orderId;
+  document.getElementById('doneOrderId').style.display = 'inline-block';
+  const messages = {
+    paid: `Deposit received — we'll see you ${state.dateLabel} at ${state.time} for your ${state.service.name}.`,
+    not_required: `We'll see you ${state.dateLabel} at ${state.time} for your ${state.service.name}.`,
+    unpaid: `We'll see you ${state.dateLabel} at ${state.time} for your ${state.service.name}. A small deposit keeps your slot secure — you can pay anytime by contacting the salon with your order ID.`
+  };
+  document.getElementById('doneMessage').textContent = messages[paymentState] || messages.not_required;
+  goToStep(4);
+}
 
 // ---------- order summary sidebar ----------
 function updateOrderSummary() {

@@ -3,6 +3,7 @@
 // booked here can never clash with one booked on the site or in admin.
 const { getAvailability, createBooking, isValidMobile } = require('./booking-logic');
 const { notifyBooking } = require('./whatsapp-client');
+const payments = require('./payments');
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -184,6 +185,23 @@ async function handleIncomingMessage(db, phone, incomingText) {
           return `Sorry — ${result.error}\n\n${mainMenuText(db)}`;
         }
         notifyBooking(db, result.booking).catch(err => console.error('Booking notification error:', err.message));
+
+        if (payments.isConfigured() && db.settings.depositEnabled) {
+          try {
+            const amountPaise = Math.round((db.settings.depositAmount || 50) * 100);
+            const link = await payments.createPaymentLink({
+              referenceId: result.booking.orderId,
+              customerName: result.booking.name,
+              customerPhone: result.booking.mobile,
+              description: `Deposit for ${result.booking.serviceName}`,
+              amountPaise
+            });
+            const rupees = (amountPaise / 100).toFixed(0);
+            return `Booked! ✅ Order ID: ${result.booking.orderId}\n\nTo confirm your slot, please pay a ₹${rupees} deposit here:\n${link.shortUrl}\n\nWe'll see you soon!\n\n${mainMenuText(db)}`;
+          } catch (err) {
+            console.error('Payment link creation failed:', err.message);
+          }
+        }
         return `Booked! ✅ Your order ID is ${result.booking.orderId}. We'll see you then!\n\n${mainMenuText(db)}`;
       }
       if (['no', 'n', 'cancel'].includes(lower)) {

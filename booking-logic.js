@@ -82,6 +82,9 @@ function createBooking(db, payload, source) {
     orderId: 'VJS' + db.bookingSeq,
     status: 'upcoming',
     source: source || 'website', // 'website' | 'whatsapp'
+    paymentStatus: 'pending', // 'pending' | 'paid'
+    paymentId: null,
+    paymentAmount: null,
     professionalId,
     professionalName: professionalName || 'Any Professional',
     serviceId,
@@ -102,4 +105,12 @@ function createBooking(db, payload, source) {
   return { ok: true, booking };
 }
 
-module.exports = { newId, isValidMobile, normalizeMobile, buildSlotTemplate, getAvailability, createBooking };
+/**
+ * Finds a booking by its short order ID (e.g. "VJS1001") — used to match a
+ * Razorpay webhook or payment verification back to the right booking.
+ */
+function findBookingByOrderId(db, orderId) {
+  return db.bookings.find(b => b.orderId === orderId);
+}
+
+module.exports = { newId, isValidMobile, normalizeMobile, buildSlotTemplate, getAvailability, createBooking, findBookingByOrderId };

@@ -14,7 +14,7 @@ if (!process.env.DATABASE_URL) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: false
 });
 
 const DEFAULT_DATA = {
@@ -28,7 +28,10 @@ const DEFAULT_DATA = {
     phoneDisplay: '',
     hours: '',
     logoUrl: '',
-    instagramUrl: ''
+    instagramUrl: '',
+    whatsappBotNumber: '919840417667', // used for "Message on WhatsApp" links — your bot's number
+    depositEnabled: true,
+    depositAmount: 50 // rupees
   },
   services: [],
   team: [],
@@ -78,6 +81,9 @@ async function readDB() {
   if (!db.bookings) db.bookings = [];
   if (!db.bookingSeq) db.bookingSeq = 1001;
   if (!db.conversations) db.conversations = {};
+  if (db.settings.depositEnabled === undefined) db.settings.depositEnabled = true;
+  if (db.settings.depositAmount === undefined) db.settings.depositAmount = 50;
+  if (db.settings.whatsappBotNumber === undefined) db.settings.whatsappBotNumber = '919840417667';
   db.bookings.forEach(b => { if (!b.status) b.status = 'upcoming'; });
   db.bookings.forEach(b => { if (!b.source) b.source = 'website'; });
 

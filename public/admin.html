@@ -128,6 +128,7 @@
             </div>
             <div class="form-row">
               <div class="field"><label>Hours</label><input type="text" id="setHours"></div>
+              <div class="field"><label>WhatsApp bot number (digits, country code, no '+')</label><input type="text" id="setWaBotNumber" placeholder="919840417667"></div>
             </div>
             <div class="field">
               <label>Logo</label>
@@ -143,6 +144,18 @@
               <input type="hidden" id="setLogo">
               <div class="error-msg" id="setLogoError"></div>
             </div>
+
+            <div class="field toggle-field">
+              <label class="toggle-label">
+                <input type="checkbox" id="setDepositEnabled">
+                <span>Require an advance payment deposit to confirm bookings</span>
+              </label>
+            </div>
+            <div class="field" id="depositAmountField">
+              <label>Deposit amount (₹)</label>
+              <input type="number" id="setDepositAmount" min="1" step="1">
+            </div>
+
             <button type="submit" class="btn btn-primary btn-small">Save settings</button>
             <div class="success-msg" id="settingsMsg"></div>
           </form>
