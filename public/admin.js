@@ -24,6 +24,7 @@ function showDashboard() {
   loadServices();
   loadTeam();
   loadSettings();
+  loadBotMessages();
 }
 
 // ---------- login / logout ----------
@@ -473,3 +474,87 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
 });
 
 checkSession();
+
+// ---------- BOT MESSAGES ----------
+const BOT_MESSAGE_FIELDS = [
+  { key: 'chooseLanguageBody', label: 'Language picker message', hint: 'Shown before the customer picks a language. No placeholders — keep it trilingual so everyone understands.' },
+  { key: 'welcome', label: 'Main menu (welcome message)', hint: 'Placeholders: {salonName}' },
+  { key: 'chooseProfessional', label: 'Ask which professional', hint: 'No placeholders. The numbered list is added automatically after this text.' },
+  { key: 'noServicesYet', label: 'No services yet (services list)', hint: 'Shown if you haven\'t added any services yet.' },
+  { key: 'chooseService', label: 'Ask which service', hint: 'Placeholders: {professionalName}' },
+  { key: 'noServicesSetup', label: 'No services (mid-booking)', hint: 'Shown if services are empty partway through booking.' },
+  { key: 'chooseDate', label: 'Ask which date', hint: 'No placeholders.' },
+  { key: 'noSlotsOnDate', label: 'No time slots available', hint: 'Placeholders: {professionalName}, {dateLabel}' },
+  { key: 'chooseTime', label: 'Ask which time', hint: 'Placeholders: {dateLabel}' },
+  { key: 'askName', label: "Ask for customer's name", hint: 'Placeholders: {time}, {dateLabel}' },
+  { key: 'askNameRetry', label: 'Retry — name too short', hint: 'No placeholders.' },
+  { key: 'askMobile', label: 'Ask for mobile number', hint: 'Placeholders: {name}' },
+  { key: 'invalidMobile', label: 'Retry — invalid mobile number', hint: 'No placeholders.' },
+  { key: 'confirmSummary', label: 'Booking summary + confirm prompt', hint: 'Placeholders: {serviceName}, {professionalName}, {dateLabel}, {time}, {name}, {mobile}' },
+  { key: 'bookingSuccess', label: 'Booking confirmed (no deposit)', hint: 'Placeholders: {orderId}' },
+  { key: 'bookingSuccessWithDeposit', label: 'Booking confirmed (with deposit link)', hint: 'Placeholders: {orderId}, {amount}, {link}' },
+  { key: 'bookingCancelled', label: 'Booking cancelled', hint: 'No placeholders.' },
+  { key: 'bookingFailed', label: 'Booking failed', hint: 'Placeholders: {error}' },
+  { key: 'confirmYesNoPrompt', label: 'Invalid reply at confirm step', hint: 'No placeholders.' },
+  { key: 'servicesListIntro', label: 'Services list header (menu 2)', hint: 'No placeholders. The service list is added automatically after this text.' },
+  { key: 'hoursLocationReply', label: 'Hours & location reply (menu 3)', hint: 'Placeholders: {address}, {hours}, {phone}' },
+  { key: 'staffReply', label: 'Talk to staff reply (menu 4)', hint: 'Placeholders: {phone}' },
+  { key: 'didntCatch', label: 'Invalid main menu choice', hint: 'No placeholders.' },
+  { key: 'pleaseReplyNumber', label: 'Invalid numbered-list reply', hint: 'Placeholders: {max}' }
+];
+
+let botMessagesData = { en: {}, ta: {}, hi: {} };
+let activeBotLang = 'en';
+
+function renderBotMessageFields() {
+  const container = document.getElementById('botMessagesFields');
+  const langData = botMessagesData[activeBotLang] || {};
+  container.innerHTML = BOT_MESSAGE_FIELDS.map(f => `
+    <div class="field">
+      <label>${escapeHtml(f.label)}</label>
+      <textarea data-key="${f.key}" rows="3">${escapeHtml(langData[f.key] || '')}</textarea>
+      <div class="field-hint">${escapeHtml(f.hint)}</div>
+    </div>
+  `).join('');
+  container.querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', () => {
+      botMessagesData[activeBotLang][ta.dataset.key] = ta.value;
+    });
+  });
+}
+
+document.getElementById('botLangTabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('.bot-lang-tab');
+  if (!btn) return;
+  document.querySelectorAll('.bot-lang-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  activeBotLang = btn.dataset.lang;
+  renderBotMessageFields();
+});
+
+async function loadBotMessages() {
+  const res = await fetch('/api/settings');
+  const s = await res.json();
+  botMessagesData = s.botMessages || { en: {}, ta: {}, hi: {} };
+  renderBotMessageFields();
+}
+
+document.getElementById('saveBotMessagesBtn').addEventListener('click', async () => {
+  const msgEl = document.getElementById('botMessagesMsg');
+  msgEl.textContent = '';
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ botMessages: botMessagesData })
+    });
+    if (res.ok) {
+      msgEl.textContent = 'Bot messages saved.';
+      setTimeout(() => msgEl.textContent = '', 2500);
+    } else {
+      msgEl.textContent = 'Something went wrong.';
+    }
+  } catch (e) {
+    msgEl.textContent = 'Could not reach server.';
+  }
+});

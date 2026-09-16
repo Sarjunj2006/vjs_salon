@@ -45,6 +45,7 @@
         <button class="admin-tab" data-tab="services">Services</button>
         <button class="admin-tab" data-tab="team">Team</button>
         <button class="admin-tab" data-tab="settings">Settings</button>
+        <button class="admin-tab" data-tab="botmessages">Bot Messages</button>
       </div>
 
       <!-- BOOKINGS -->
@@ -160,6 +161,21 @@
             <div class="success-msg" id="settingsMsg"></div>
           </form>
         </div>
+      </div>
+
+      <!-- BOT MESSAGES -->
+      <div class="admin-panel" id="panel-botmessages">
+        <p style="color:var(--text-soft); font-size:0.9rem; margin-bottom:20px;">
+          Edit exactly what your WhatsApp bot says, in each language. Use the placeholders shown (like <code>{salonName}</code>) exactly as written — they get replaced with real details automatically. Leave a field blank to fall back to the default English text.
+        </p>
+        <div class="bot-lang-tabs" id="botLangTabs">
+          <button class="bot-lang-tab active" data-lang="en">English</button>
+          <button class="bot-lang-tab" data-lang="ta">தமிழ்</button>
+          <button class="bot-lang-tab" data-lang="hi">हिन्दी</button>
+        </div>
+        <div id="botMessagesFields"></div>
+        <button type="button" id="saveBotMessagesBtn" class="btn btn-primary btn-small">Save messages</button>
+        <div class="success-msg" id="botMessagesMsg"></div>
       </div>
 
     </div>

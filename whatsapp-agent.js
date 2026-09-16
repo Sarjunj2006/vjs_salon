@@ -1,25 +1,49 @@
 // Free, AI-free WhatsApp bot: customers navigate a numbered menu instead of
 // free-form chat. Uses the same booking-logic.js as the website, so a slot
 // booked here can never clash with one booked on the site or in admin.
+//
+// Multilingual: every piece of text the bot sends lives in
+// db.settings.botMessages[lang][key], editable from the admin panel.
+// handleIncomingMessage() can return either a plain string (normal text
+// reply) or an object { type: 'buttons', body, buttons } for the language
+// picker — server.js's webhook handler checks which one it got and sends
+// the right kind of WhatsApp message.
 const { getAvailability, createBooking, isValidMobile } = require('./booking-logic');
 const { notifyBooking } = require('./whatsapp-client');
 const payments = require('./payments');
+const DEFAULT_BOT_MESSAGES = require('./bot-messages-defaults');
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+const LANGUAGE_BUTTONS = [
+  { id: 'lang_en', title: 'English' },
+  { id: 'lang_ta', title: 'தமிழ்' },
+  { id: 'lang_hi', title: 'हिन्दी' }
+];
+const LANGUAGE_CODES = { lang_en: 'en', lang_ta: 'ta', lang_hi: 'hi' };
+
 function freshState() {
-  return { step: 'main_menu', data: {} };
+  return { step: 'main_menu', lang: null, data: {} };
 }
 
-function mainMenuText(db) {
-  const s = db.settings;
-  return `Welcome to ${s.salonName}! 👋\nReply with a number:\n\n`
-    + `1. Book an appointment\n`
-    + `2. View services & prices\n`
-    + `3. Hours & location\n`
-    + `4. Talk to a staff member\n\n`
-    + `(You can type "menu" anytime to come back here.)`;
+// Looks up a message template for the given language, falling back to
+// English, then the built-in defaults, so a missing/blank admin edit never
+// breaks the bot. Fills in {placeholders} with the given values.
+function t(db, lang, key, vars) {
+  const messages = db.settings.botMessages || {};
+  const template =
+    (messages[lang] && messages[lang][key]) ||
+    (messages.en && messages.en[key]) ||
+    (DEFAULT_BOT_MESSAGES[lang] && DEFAULT_BOT_MESSAGES[lang][key]) ||
+    DEFAULT_BOT_MESSAGES.en[key] ||
+    '';
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (_, name) => (vars[name] !== undefined ? vars[name] : ''));
+}
+
+function mainMenuText(db, lang) {
+  return t(db, lang, 'welcome', { salonName: db.settings.salonName });
 }
 
 function professionalList(db) {
@@ -55,20 +79,43 @@ function parseChoice(text, max) {
 /**
  * Handles one incoming WhatsApp message for a given db + phone number.
  * Mutates db.conversations[phone] with the current step/state and returns
- * the reply text. Caller is responsible for calling writeDB(db) after.
+ * either a plain string (text reply) or { type: 'buttons', body, buttons }.
+ * Caller is responsible for calling writeDB(db) after, and for sending the
+ * right kind of message based on the return type.
  */
 async function handleIncomingMessage(db, phone, incomingText) {
   if (!db.conversations) db.conversations = {};
   if (!db.conversations[phone]) db.conversations[phone] = freshState();
   const convo = db.conversations[phone];
+  if (convo.lang === undefined) convo.lang = null; // backward-compat for older saved conversations
   const text = (incomingText || '').trim();
   const lower = text.toLowerCase();
+
+  // Language not chosen yet — handle the button tap, or (re)send the picker.
+  if (!convo.lang) {
+    if (LANGUAGE_CODES[text]) {
+      convo.lang = LANGUAGE_CODES[text];
+      convo.step = 'main_menu';
+      convo.data = {};
+      return mainMenuText(db, convo.lang);
+    }
+    return { type: 'buttons', body: t(db, 'en', 'chooseLanguageBody'), buttons: LANGUAGE_BUTTONS };
+  }
+  const lang = convo.lang;
+
+  // Let the customer switch language anytime.
+  if (['language', 'lang', 'மொழி', 'भाषा'].includes(lower)) {
+    convo.lang = null;
+    convo.step = 'main_menu';
+    convo.data = {};
+    return { type: 'buttons', body: t(db, 'en', 'chooseLanguageBody'), buttons: LANGUAGE_BUTTONS };
+  }
 
   // Global reset command, works from any step.
   if (['menu', 'cancel', 'restart', 'hi', 'hello', 'hey'].includes(lower)) {
     convo.step = 'main_menu';
     convo.data = {};
-    return mainMenuText(db);
+    return mainMenuText(db, lang);
   }
 
   switch (convo.step) {
@@ -78,44 +125,45 @@ async function handleIncomingMessage(db, phone, incomingText) {
         convo.step = 'choose_professional';
         convo.data = {};
         const list = professionalList(db);
-        return `Who would you like to book with?\n\n`
+        return t(db, lang, 'chooseProfessional')
           + list.map((p, i) => `${i + 1}. ${p.name}${p.role ? ' — ' + p.role : ''}`).join('\n');
       }
       if (choice === 2) {
-        if (!db.services.length) return `No services listed yet — please check back soon or reply "4" to talk to staff.\n\n${mainMenuText(db)}`;
+        if (!db.services.length) return t(db, lang, 'noServicesYet') + mainMenuText(db, lang);
         const list = db.services.map(s => `• ${s.name} (${s.duration}) — ${s.price}`).join('\n');
-        return `Our services:\n\n${list}\n\n${mainMenuText(db)}`;
+        return t(db, lang, 'servicesListIntro') + list + '\n\n' + mainMenuText(db, lang);
       }
       if (choice === 3) {
         const s = db.settings;
-        return `📍 ${s.address}\n🕐 ${s.hours}\n📞 ${s.phoneDisplay || s.phone}\n\n${mainMenuText(db)}`;
+        return t(db, lang, 'hoursLocationReply', { address: s.address, hours: s.hours, phone: s.phoneDisplay || s.phone })
+          + mainMenuText(db, lang);
       }
       if (choice === 4) {
         const s = db.settings;
-        return `A staff member will follow up with you here shortly. For anything urgent, call ${s.phoneDisplay || s.phone}.\n\n${mainMenuText(db)}`;
+        return t(db, lang, 'staffReply', { phone: s.phoneDisplay || s.phone }) + mainMenuText(db, lang);
       }
-      return `Sorry, I didn't catch that.\n\n${mainMenuText(db)}`;
+      return t(db, lang, 'didntCatch') + mainMenuText(db, lang);
     }
 
     case 'choose_professional': {
       const list = professionalList(db);
       const choice = parseChoice(text, list.length);
-      if (!choice) return `Please reply with a number from 1 to ${list.length}, or type "menu" to start over.`;
+      if (!choice) return t(db, lang, 'pleaseReplyNumber', { max: list.length });
       const p = list[choice - 1];
       convo.data.professionalId = p.id;
       convo.data.professionalName = p.name;
       convo.step = 'choose_service';
       if (!db.services.length) {
         convo.step = 'main_menu';
-        return `Sorry, no services are set up yet — please reply "4" to talk to staff directly.\n\n${mainMenuText(db)}`;
+        return t(db, lang, 'noServicesSetup') + mainMenuText(db, lang);
       }
-      return `Great, ${p.name}. Which service?\n\n`
+      return t(db, lang, 'chooseService', { professionalName: p.name })
         + db.services.map((s, i) => `${i + 1}. ${s.name} (${s.duration}) — ${s.price}`).join('\n');
     }
 
     case 'choose_service': {
       const choice = parseChoice(text, db.services.length);
-      if (!choice) return `Please reply with a number from 1 to ${db.services.length}, or type "menu" to start over.`;
+      if (!choice) return t(db, lang, 'pleaseReplyNumber', { max: db.services.length });
       const svc = db.services[choice - 1];
       convo.data.serviceId = svc.id;
       convo.data.serviceName = svc.name;
@@ -123,57 +171,54 @@ async function handleIncomingMessage(db, phone, incomingText) {
       convo.data.servicePrice = svc.price;
       convo.step = 'choose_date';
       convo.data.dateOptions = buildDateOptions();
-      return `Which day works for you?\n\n`
+      return t(db, lang, 'chooseDate')
         + convo.data.dateOptions.map((d, i) => `${i + 1}. ${d.label}`).join('\n');
     }
 
     case 'choose_date': {
       const options = convo.data.dateOptions || buildDateOptions();
       const choice = parseChoice(text, options.length);
-      if (!choice) return `Please reply with a number from 1 to ${options.length}, or type "menu" to start over.`;
+      if (!choice) return t(db, lang, 'pleaseReplyNumber', { max: options.length });
       const picked = options[choice - 1];
       const { available } = getAvailability(db, convo.data.professionalId, picked.iso);
       const slots = whatsappFriendlySlots(available);
       if (!slots.length) {
-        return `Sorry, no times are open with ${convo.data.professionalName} on ${picked.label}. Pick another day:\n\n`
+        return t(db, lang, 'noSlotsOnDate', { professionalName: convo.data.professionalName, dateLabel: picked.label })
           + options.map((d, i) => `${i + 1}. ${d.label}`).join('\n');
       }
       convo.data.date = picked.iso;
       convo.data.dateLabel = picked.label;
       convo.data.availableSlots = slots;
       convo.step = 'choose_time';
-      return `Times open on ${picked.label}:\n\n`
-        + slots.map((t, i) => `${i + 1}. ${t}`).join('\n');
+      return t(db, lang, 'chooseTime', { dateLabel: picked.label })
+        + slots.map((tm, i) => `${i + 1}. ${tm}`).join('\n');
     }
 
     case 'choose_time': {
       const slots = convo.data.availableSlots || [];
       const choice = parseChoice(text, slots.length);
-      if (!choice) return `Please reply with a number from 1 to ${slots.length}, or type "menu" to start over.`;
+      if (!choice) return t(db, lang, 'pleaseReplyNumber', { max: slots.length });
       convo.data.time = slots[choice - 1];
       convo.step = 'enter_name';
-      return `Got it — ${convo.data.time} on ${convo.data.dateLabel}. What's your name?`;
+      return t(db, lang, 'askName', { time: convo.data.time, dateLabel: convo.data.dateLabel });
     }
 
     case 'enter_name': {
-      if (!text || text.length < 2) return `Please tell me your name to continue.`;
+      if (!text || text.length < 2) return t(db, lang, 'askNameRetry');
       convo.data.name = text;
       convo.step = 'enter_mobile';
-      return `Thanks, ${text}! What's your 10-digit mobile number?`;
+      return t(db, lang, 'askMobile', { name: text });
     }
 
     case 'enter_mobile': {
-      if (!isValidMobile(text)) return `That doesn't look like a valid 10-digit number — please try again.`;
+      if (!isValidMobile(text)) return t(db, lang, 'invalidMobile');
       convo.data.mobile = text;
       convo.step = 'confirm';
       const d = convo.data;
-      return `Please confirm:\n\n`
-        + `Service: ${d.serviceName}\n`
-        + `With: ${d.professionalName}\n`
-        + `When: ${d.dateLabel} at ${d.time}\n`
-        + `Name: ${d.name}\n`
-        + `Mobile: ${d.mobile}\n\n`
-        + `Reply YES to confirm, or NO to cancel.`;
+      return t(db, lang, 'confirmSummary', {
+        serviceName: d.serviceName, professionalName: d.professionalName,
+        dateLabel: d.dateLabel, time: d.time, name: d.name, mobile: d.mobile
+      });
     }
 
     case 'confirm': {
@@ -182,7 +227,7 @@ async function handleIncomingMessage(db, phone, incomingText) {
         convo.step = 'main_menu';
         convo.data = {};
         if (!result.ok) {
-          return `Sorry — ${result.error}\n\n${mainMenuText(db)}`;
+          return t(db, lang, 'bookingFailed', { error: result.error }) + mainMenuText(db, lang);
         }
         notifyBooking(db, result.booking).catch(err => console.error('Booking notification error:', err.message));
 
@@ -197,25 +242,26 @@ async function handleIncomingMessage(db, phone, incomingText) {
               amountPaise
             });
             const rupees = (amountPaise / 100).toFixed(0);
-            return `Booked! ✅ Order ID: ${result.booking.orderId}\n\nTo confirm your slot, please pay a ₹${rupees} deposit here:\n${link.shortUrl}\n\nWe'll see you soon!\n\n${mainMenuText(db)}`;
+            return t(db, lang, 'bookingSuccessWithDeposit', { orderId: result.booking.orderId, amount: rupees, link: link.shortUrl })
+              + mainMenuText(db, lang);
           } catch (err) {
             console.error('Payment link creation failed:', err.message);
           }
         }
-        return `Booked! ✅ Your order ID is ${result.booking.orderId}. We'll see you then!\n\n${mainMenuText(db)}`;
+        return t(db, lang, 'bookingSuccess', { orderId: result.booking.orderId }) + mainMenuText(db, lang);
       }
       if (['no', 'n', 'cancel'].includes(lower)) {
         convo.step = 'main_menu';
         convo.data = {};
-        return `No problem, cancelled.\n\n${mainMenuText(db)}`;
+        return t(db, lang, 'bookingCancelled') + mainMenuText(db, lang);
       }
-      return `Please reply YES to confirm or NO to cancel.`;
+      return t(db, lang, 'confirmYesNoPrompt');
     }
 
     default: {
       convo.step = 'main_menu';
       convo.data = {};
-      return mainMenuText(db);
+      return mainMenuText(db, lang);
     }
   }
 }

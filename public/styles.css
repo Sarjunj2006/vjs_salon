@@ -410,3 +410,7 @@ footer{border-top:1px solid var(--line); padding:44px 0; }
 .pill{font-size:0.78rem; color:var(--text-soft); background:var(--plum-900); border:1px solid var(--line); padding:5px 12px; border-radius:20px;}
 .toggle-label{display:flex; align-items:center; gap:10px; cursor:pointer; font-size:0.92rem;}
 .toggle-label input[type="checkbox"]{width:18px; height:18px; accent-color:var(--brass); cursor:pointer;}
+.bot-lang-tabs{display:flex; gap:8px; margin-bottom:24px; border-bottom:1px solid var(--line); padding-bottom:0;}
+.bot-lang-tab{padding:10px 18px; color:var(--text-soft); background:none; border:none; cursor:pointer; font-size:0.9rem; border-bottom:2px solid transparent;}
+.bot-lang-tab.active{color:var(--ivory); border-bottom-color:var(--brass);}
+.field-hint{font-size:0.76rem; color:var(--text-soft); margin-top:5px; opacity:0.85;}

@@ -8,7 +8,7 @@ const path = require('path');
 const { readDB, writeDB, ensureReady } = require('./db');
 const { createBooking, findBookingByOrderId } = require('./booking-logic');
 const { handleIncomingMessage } = require('./whatsapp-agent');
-const { sendWhatsAppMessage, notifyBooking } = require('./whatsapp-client');
+const { sendWhatsAppMessage, sendWhatsAppButtons, notifyBooking } = require('./whatsapp-client');
 const payments = require('./payments');
 
 const app = express();
@@ -329,7 +329,8 @@ app.post('/webhook/whatsapp', async (req, res) => {
     if (!message) return;
 
     const from = message.from;
-    const body = message.text?.body?.trim();
+    // Either a typed text message, or a tap on one of our language buttons.
+    const body = message.text?.body?.trim() || message.interactive?.button_reply?.id;
     if (!from || !body) return;
 
     const db = await readDB();
@@ -341,7 +342,12 @@ app.post('/webhook/whatsapp', async (req, res) => {
       reply = "Sorry, something went wrong on our end. Please try again shortly, or call the salon directly.";
     }
     await writeDB(db);
-    await sendWhatsAppMessage(from, reply);
+
+    if (reply && typeof reply === 'object' && reply.type === 'buttons') {
+      await sendWhatsAppButtons(from, reply.body, reply.buttons);
+    } else {
+      await sendWhatsAppMessage(from, reply);
+    }
   } catch (err) {
     console.error('WhatsApp webhook processing error:', err.message);
   }

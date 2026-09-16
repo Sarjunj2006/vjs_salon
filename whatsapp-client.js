@@ -41,6 +41,47 @@ async function sendWhatsAppMessage(toDigits, text) {
   }
 }
 
+/**
+ * Sends an interactive message with up to 3 tappable reply buttons.
+ * `buttons` is an array of { id, title } — title max 20 characters (WhatsApp limit).
+ */
+async function sendWhatsAppButtons(toDigits, bodyText, buttons) {
+  if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+    console.log('[WhatsApp] Not configured — would have sent buttons to', toDigits + ':', bodyText, buttons);
+    return null;
+  }
+  try {
+    const res = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: toDigits,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: bodyText },
+          action: {
+            buttons: buttons.slice(0, 3).map(b => ({
+              type: 'reply',
+              reply: { id: b.id, title: b.title.slice(0, 20) }
+            }))
+          }
+        }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) console.error('[WhatsApp] send buttons failed:', JSON.stringify(data));
+    return data;
+  } catch (err) {
+    console.error('[WhatsApp] send buttons error:', err.message);
+    return null;
+  }
+}
+
 function formatCustomerConfirmation(db, booking) {
   const s = db.settings;
   return `Hi ${booking.name}! Your appointment at ${s.salonName} is confirmed ✅\n\n`
@@ -78,4 +119,4 @@ async function notifyBooking(db, booking) {
   await Promise.allSettled(tasks);
 }
 
-module.exports = { sendWhatsAppMessage, notifyBooking, formatCustomerConfirmation, formatStaffAlert };
+module.exports = { sendWhatsAppMessage, sendWhatsAppButtons, notifyBooking, formatCustomerConfirmation, formatStaffAlert };

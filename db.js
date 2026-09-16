@@ -7,6 +7,7 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const DEFAULT_BOT_MESSAGES = require('./bot-messages-defaults');
 
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL is not set — add your Neon connection string to .env');
@@ -14,7 +15,7 @@ if (!process.env.DATABASE_URL) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: false
+  ssl: { rejectUnauthorized: false }
 });
 
 const DEFAULT_DATA = {
@@ -31,7 +32,8 @@ const DEFAULT_DATA = {
     instagramUrl: '',
     whatsappBotNumber: '919840417667', // used for "Message on WhatsApp" links — your bot's number
     depositEnabled: true,
-    depositAmount: 50 // rupees
+    depositAmount: 50, // rupees
+    botMessages: DEFAULT_BOT_MESSAGES
   },
   services: [],
   team: [],
@@ -84,6 +86,18 @@ async function readDB() {
   if (db.settings.depositEnabled === undefined) db.settings.depositEnabled = true;
   if (db.settings.depositAmount === undefined) db.settings.depositAmount = 50;
   if (db.settings.whatsappBotNumber === undefined) db.settings.whatsappBotNumber = '919840417667';
+
+  // Backfill any bot-message keys/languages that didn't exist yet in older
+  // saved data (e.g. new languages or new message types added later).
+  if (!db.settings.botMessages) db.settings.botMessages = {};
+  for (const lang of Object.keys(DEFAULT_BOT_MESSAGES)) {
+    if (!db.settings.botMessages[lang]) db.settings.botMessages[lang] = {};
+    for (const key of Object.keys(DEFAULT_BOT_MESSAGES[lang])) {
+      if (!db.settings.botMessages[lang][key]) {
+        db.settings.botMessages[lang][key] = DEFAULT_BOT_MESSAGES[lang][key];
+      }
+    }
+  }
   db.bookings.forEach(b => { if (!b.status) b.status = 'upcoming'; });
   db.bookings.forEach(b => { if (!b.source) b.source = 'website'; });
 
