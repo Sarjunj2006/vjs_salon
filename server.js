@@ -2,8 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
+const ImageKit = require('@imagekit/nodejs').default;
+const { toFile } = require('@imagekit/nodejs');
 const path = require('path');
-const cloudinary = require('cloudinary').v2;
 const { readDB, writeDB, ensureReady } = require('./db');
 const { createBooking, findBookingByOrderId } = require('./booking-logic');
 const { handleIncomingMessage } = require('./whatsapp-agent');
@@ -15,18 +16,9 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'vjsalon2026';
 const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-// TEMPORARY DEBUG — remove after diagnosing the Cloudinary 403 issue
-console.log('[DEBUG] Cloudinary env check:',
-  JSON.stringify(process.env.CLOUDINARY_CLOUD_NAME),
-  JSON.stringify(process.env.CLOUDINARY_API_KEY),
-  JSON.stringify(process.env.CLOUDINARY_API_SECRET)
-);
+const imagekit = process.env.IMAGEKIT_PRIVATE_KEY
+  ? new ImageKit({ privateKey: process.env.IMAGEKIT_PRIVATE_KEY })
+  : null;
 
 app.use(express.json({
   verify: (req, res, buf) => { req.rawBody = buf; }
@@ -44,8 +36,8 @@ function newId(prefix) {
 }
 
 // ---------- file uploads ----------
-// Uploaded to Cloudinary (persistent, CDN-hosted) instead of local disk or
-// the database — keeps Postgres lean and images load fast for customers.
+// Uploaded to ImageKit (CDN-hosted), not stored in our own database — keeps
+// Postgres lean and images load fast for customers, wherever they are.
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024 }, // 8MB
@@ -55,25 +47,22 @@ const upload = multer({
   }
 });
 
-function uploadToCloudinary(buffer) {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder: 'vj-signature-salon' },
-      (err, result) => err ? reject(err) : resolve(result)
-    );
-    stream.end(buffer);
-  });
-}
-
 app.post('/api/upload', requireAuth, (req, res) => {
+  if (!imagekit) return res.status(503).json({ error: 'Image uploads are not set up yet.' });
   upload.single('file')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
     if (!req.file) return res.status(400).json({ error: 'No file received' });
     try {
-      const result = await uploadToCloudinary(req.file.buffer);
-      res.json({ url: result.secure_url });
+      const fileName = newId('img') + path.extname(req.file.originalname || '.jpg');
+      const file = await toFile(req.file.buffer, fileName);
+      const result = await imagekit.files.upload({
+        file,
+        fileName,
+        folder: '/vj-signature-salon'
+      });
+      res.json({ url: result.url });
     } catch (uploadErr) {
-      console.error('Cloudinary upload failed:', JSON.stringify(uploadErr, Object.getOwnPropertyNames(uploadErr)));
+      console.error('ImageKit upload failed:', uploadErr.message);
       res.status(502).json({ error: 'Could not upload image. Please try again.' });
     }
   });
@@ -100,14 +89,6 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/session', (req, res) => {
   res.json({ loggedIn: !!(req.session && req.session.isAdmin) });
-});
-
-app.post('/api/upload', requireAuth, (req, res) => {
-  upload.single('file')(req, res, (err) => {
-    if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
-    if (!req.file) return res.status(400).json({ error: 'No file received' });
-    res.json({ url: '/uploads/' + req.file.filename });
-  });
 });
 
 // ---------- settings ----------
