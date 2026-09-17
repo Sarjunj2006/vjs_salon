@@ -13,9 +13,8 @@
 
 <header class="site-nav">
   <div class="nav-inner">
-    <a href="#" class="brand" id="brandLink">
-      <img id="brandLogo" src="" alt="" style="display:none;">
-      <span id="brandName">VJ <span>Signature Salon</span></span>
+    <a href="index.html" class="brand" id="brandLink">
+      <img id="brandLogo" src="vj-logo.png" alt="VJ Signature Salon" style="height:44px; width:auto; display:block;">
     </a>
     <nav class="links" id="navLinks">
       <a href="#team">Stylists</a>
@@ -130,7 +129,9 @@
 
 <footer>
   <div class="wrap footer-row">
-    <div class="brand" id="footerBrand">VJ <span>Signature Salon</span></div>
+    <a href="index.html" class="brand" id="footerBrand">
+      <img src="vj-logo.png" alt="VJ Signature Salon" style="height:38px; width:auto; display:block;">
+    </a>
     <div class="footer-links">
       <a href="#team">Stylists</a>
       <a href="#pricing">Services</a>
@@ -192,7 +193,6 @@
         const logo = document.getElementById('brandLogo');
         logo.src = s.logoUrl;
         logo.alt = s.salonName + ' logo';
-        logo.style.display = 'block';
       }
     } catch (e) {
       console.error('Failed to load settings', e);

@@ -29,14 +29,12 @@ async function boot() {
     team = await teamRes.json();
     services = await servicesRes.json();
 
-    document.getElementById('bBrandName').textContent = settings.salonName;
     document.getElementById('orderSalonName').textContent = settings.salonName;
     document.title = 'Book an Appointment — ' + settings.salonName;
     salonName = settings.salonName;
     if (settings.logoUrl) {
       const logo = document.getElementById('bBrandLogo');
       logo.src = settings.logoUrl;
-      logo.style.display = 'block';
     }
   } catch (e) {
     console.error('Failed to load salon data', e);
@@ -313,9 +311,7 @@ async function startPayment(booking) {
       description: `Booking deposit — ${booking.orderId}`,
       prefill: { name: custName.value.trim(), contact: '+91' + custMobile.value.trim() },
       theme: { color: brassColor },
-      // UPI-only restriction removed temporarily — re-add
-      // method: { upi: '1', card: '0', netbanking: '0', wallet: '0', paylater: '0', emi: '0' }
-      // once UPI is approved on the Razorpay account (needs the paid KYC verification).
+      method: { upi: '1', card: '0', netbanking: '0', wallet: '0', paylater: '0', emi: '0' },
       handler: async function (response) {
         try {
           const verifyRes = await fetch('/api/payments/verify', {
