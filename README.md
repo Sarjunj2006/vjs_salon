@@ -15,19 +15,6 @@ npm start
 Then open:
 - Public site: http://localhost:3000
 - Admin panel: http://localhost:3000/admin.html
-
-## Default admin password
-
-```
-vjsalon2026
-```
-
-**Change this before putting the site online.** Either edit the default in `server.js`, or set an environment variable when starting the server:
-
-```bash
-ADMIN_PASSWORD=your-new-password npm start
-```
-
 ## How it works
 
 - All salon data (services, team, settings) lives in `data/db.json`. The admin panel edits this file through the API; the public site reads from the same API on every page load, so changes show up immediately — no rebuilding or redeploying needed.
@@ -50,10 +37,4 @@ vj-salon/
     └── styles.css           # shared styling for both pages
 ```
 
-## Deploying
 
-This runs anywhere Node.js runs (Render, Railway, a VPS, etc.). Just make sure:
-1. `npm install` runs on the server.
-2. `npm start` is the start command.
-3. `data/db.json` is on persistent storage (not wiped on redeploy) so your edits survive.
-4. Set `ADMIN_PASSWORD` and `SESSION_SECRET` as environment variables in production.
