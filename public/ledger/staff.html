@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Staff Ledger — VJ Signature Salon</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/ledger/ledger.css">
+</head>
+<body>
+<div class="ledger-root ledger-staff-page">
+
+  <!-- LOGIN -->
+  <div id="staffLogin" hidden>
+    <div class="login-box">
+      <h1>Staff ledger</h1>
+      <p>Log in with the staff password to add today's services.</p>
+      <form id="staffLoginForm">
+        <div class="field">
+          <label for="staffPw">Staff password</label>
+          <input type="password" id="staffPw" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Log in</button>
+        <div class="error-msg" id="staffLoginError"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ENTRY FORM -->
+  <div id="staffApp" hidden>
+    <div class="ledger-staff-head">
+      <h1>Add entry</h1>
+      <button type="button" class="btn btn-ghost btn-small" id="staffLogout">Log out</button>
+    </div>
+
+    <form id="staffEntryForm" class="form-card">
+      <div class="field"><label for="sfStaff">Your name</label><select id="sfStaff" required></select></div>
+      <div class="field"><label for="sfService">Service</label><select id="sfService" required></select></div>
+      <div class="field"><label for="sfPrice">Price (₹)</label><input type="number" id="sfPrice" min="0" step="1" required inputmode="numeric"></div>
+      <div class="field">
+        <label>Payment</label>
+        <div class="ledger-pay-options">
+          <label><input type="radio" name="sfMethod" value="cash" checked><span>Cash</span></label>
+          <label><input type="radio" name="sfMethod" value="upi"><span>UPI</span></label>
+          <label><input type="radio" name="sfMethod" value="card"><span>Card</span></label>
+          <label><input type="radio" name="sfMethod" value="other"><span>Other</span></label>
+        </div>
+      </div>
+      <div class="field"><label for="sfCustomer">Customer name (optional)</label><input type="text" id="sfCustomer"></div>
+      <div class="field"><label for="sfNote">Note (optional)</label><input type="text" id="sfNote"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;" id="sfSubmit">Save entry</button>
+      <div class="success-msg" id="sfMsg"></div>
+    </form>
+
+    <div class="ledger-section-title">Added on this phone today</div>
+    <ul class="ledger-recent" id="sfRecent"><li class="ledger-muted">Nothing yet.</li></ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  const API = '/api/ledger';
+  const $ = (id) => document.getElementById(id);
+  const money = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  let services = [];
+  const recent = [];
+
+  async function api(method, path, body) {
+    const res = await fetch(API + path, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && path !== '/staff-login') { showLogin(); throw new Error('Please log in again.'); }
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+    return data;
+  }
+
+  function showLogin() { $('staffApp').hidden = true; $('staffLogin').hidden = false; }
+
+  async function showApp() {
+    $('staffLogin').hidden = true;
+    $('staffApp').hidden = false;
+    const [staff, svc] = await Promise.all([api('GET', '/staff'), api('GET', '/services')]);
+    services = svc;
+    const lastStaff = localStorageGet('ledgerLastStaff');
+    $('sfStaff').innerHTML = staff.filter((s) => s.active)
+      .map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+    if (lastStaff && staff.some((s) => s.id === lastStaff)) $('sfStaff').value = lastStaff;
+    $('sfService').innerHTML = services.map((s) => `<option value="${esc(s.id)}">${esc(s.name)} — ${money(s.price)}</option>`).join('');
+    setPrice();
+  }
+
+  function localStorageGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+  function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+  function setPrice() {
+    const s = services.find((x) => x.id === $('sfService').value);
+    if (s) $('sfPrice').value = s.price;
+  }
+  $('sfService').addEventListener('change', setPrice);
+
+  $('staffLoginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('staffLoginError').textContent = '';
+    try {
+      await api('POST', '/staff-login', { password: $('staffPw').value });
+      $('staffPw').value = '';
+      await showApp();
+    } catch (err) { $('staffLoginError').textContent = err.message; }
+  });
+
+  $('staffLogout').addEventListener('click', async () => {
+    await api('POST', '/staff-logout').catch(() => {});
+    showLogin();
+  });
+
+  $('staffEntryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('sfSubmit');
+    btn.disabled = true;
+    try {
+      const entry = await api('POST', '/entries', {
+        staffId: $('sfStaff').value,
+        serviceId: $('sfService').value,
+        price: Number($('sfPrice').value),
+        paymentMethod: document.querySelector('input[name="sfMethod"]:checked').value,
+        customerName: $('sfCustomer').value,
+        note: $('sfNote').value,
+      });
+      localStorageSet('ledgerLastStaff', $('sfStaff').value);
+      $('sfCustomer').value = '';
+      $('sfNote').value = '';
+      setPrice();
+      $('sfMsg').style.color = '';
+      $('sfMsg').textContent = `Saved: ${entry.serviceName} ${money(entry.price)} ✓`;
+      recent.unshift(entry);
+      $('sfRecent').innerHTML = recent.map((r) =>
+        `<li><span>${esc(r.time)} · ${esc(r.serviceName)} <span class="ledger-muted">(${esc(r.paymentMethod.toUpperCase())})</span></span><strong>${money(r.price)}</strong></li>`).join('');
+    } catch (err) {
+      $('sfMsg').style.color = '#b3261e';
+      $('sfMsg').textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // On load: already logged in (as staff or admin)? Go straight to the form.
+  fetch(API + '/me').then((r) => r.json()).then((me) => {
+    if (me.staff || me.admin) showApp().catch(showLogin); else showLogin();
+  }).catch(showLogin);
+})();
+</script>
+</body>
+</html>

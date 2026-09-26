@@ -1,0 +1,68 @@
+/* Shop Ledger styles — every class starts with "ledger-" so nothing
+   here can affect the rest of the admin panel or the salon website. */
+
+.ledger-root { --ledger-line: rgba(0, 0, 0, 0.1); --ledger-soft: var(--text-soft, #6b6b6b); }
+
+.ledger-root [hidden] { display: none !important; }
+
+/* sub-tabs inside the Ledger tab */
+.ledger-subtabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.ledger-subtab {
+  padding: 8px 16px; border: 1px solid var(--ledger-line); border-radius: 999px;
+  background: transparent; cursor: pointer; font: inherit; font-size: 0.9rem; color: inherit;
+}
+.ledger-subtab.ledger-on { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+/* filter bar */
+.ledger-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 16px; }
+.ledger-filters label { display: block; font-size: 0.78rem; color: var(--ledger-soft); margin-bottom: 4px; }
+.ledger-filters input, .ledger-filters select,
+.ledger-inline input, .ledger-inline select {
+  padding: 8px 10px; border: 1px solid var(--ledger-line); border-radius: 8px; font: inherit; font-size: 0.9rem; background: #fff;
+}
+
+/* summary numbers */
+.ledger-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.ledger-stat { border: 1px solid var(--ledger-line); border-radius: 10px; padding: 12px 14px; background: #fff; }
+.ledger-stat-label { font-size: 0.75rem; color: var(--ledger-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+.ledger-stat-value { font-size: 1.35rem; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+/* tables */
+.ledger-table-wrap { overflow-x: auto; border: 1px solid var(--ledger-line); border-radius: 10px; background: #fff; margin-bottom: 20px; }
+.ledger-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.ledger-table th, .ledger-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--ledger-line); white-space: nowrap; }
+.ledger-table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ledger-soft); font-weight: 600; }
+.ledger-table tr:last-child td { border-bottom: none; }
+.ledger-num { text-align: right !important; font-variant-numeric: tabular-nums; }
+.ledger-muted { color: var(--ledger-soft); }
+.ledger-empty { padding: 24px; text-align: center; color: var(--ledger-soft); }
+
+.ledger-method { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; background: rgba(0, 0, 0, 0.06); text-transform: uppercase; }
+
+.ledger-link-btn { background: none; border: none; color: #b3261e; cursor: pointer; font: inherit; font-size: 0.85rem; padding: 0; }
+.ledger-link-btn.ledger-plain { color: inherit; text-decoration: underline; }
+
+.ledger-section-title { font-size: 1rem; font-weight: 600; margin: 8px 0 10px; }
+.ledger-inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ledger-inline input[type="number"] { width: 110px; }
+.ledger-note { font-size: 0.85rem; color: var(--ledger-soft); margin: 6px 0 0; }
+.ledger-copy-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ledger-copy-row code { padding: 6px 10px; background: rgba(0, 0, 0, 0.05); border-radius: 6px; font-size: 0.85rem; word-break: break-all; }
+
+.ledger-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 760px) { .ledger-two-col { grid-template-columns: 1fr; } }
+
+/* ---------- staff entry page ---------- */
+.ledger-staff-page { max-width: 480px; margin: 0 auto; padding: 24px 16px 48px; }
+.ledger-staff-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.ledger-staff-head h1 { font-size: 1.6rem; margin: 0; }
+.ledger-pay-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ledger-pay-options label {
+  display: block; text-align: center; padding: 10px 0; border: 1px solid var(--ledger-line);
+  border-radius: 8px; cursor: pointer; font-size: 0.9rem; user-select: none;
+}
+.ledger-pay-options input { position: absolute; opacity: 0; pointer-events: none; }
+.ledger-pay-options input:checked + span { font-weight: 600; }
+.ledger-pay-options label:has(input:checked) { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.ledger-recent { list-style: none; padding: 0; margin: 0; }
+.ledger-recent li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--ledger-line); font-size: 0.9rem; }

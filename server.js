@@ -91,6 +91,12 @@ app.get('/api/session', (req, res) => {
   res.json({ loggedIn: !!(req.session && req.session.isAdmin) });
 });
 
+// ---------- shop ledger (separate module, see ledger/routes.js) ----------
+app.use('/api/ledger', require('./ledger/routes'));
+
+// ---------- bookings viewer page (separate module, see bookings-view/routes.js) ----------
+app.use('/api/bookings-view', require('./bookings-view/routes'));
+
 // ---------- settings ----------
 app.get('/api/settings', async (req, res) => {
   const db = await readDB();
@@ -180,6 +186,18 @@ app.delete('/api/team/:id', requireAuth, async (req, res) => {
 });
 
 // ---------- bookings ----------
+// "5:45 PM" / "10:00 AM" / "17:45" -> minutes since midnight, so 9 AM sorts before 10 AM.
+function timeToMinutes(t) {
+  const m = String(t || '').trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!m) return 24 * 60;
+  let h = Number(m[1]) % 12;
+  if (!m[3]) h = Number(m[1]);
+  else if (m[3].toUpperCase() === 'PM') h += 12;
+  return h * 60 + Number(m[2]);
+}
+function compareBookings(a, b) {
+  return String(a.date).localeCompare(String(b.date)) || timeToMinutes(a.time) - timeToMinutes(b.time);
+}
 
 // Returns the list of time strings already booked for a given professional + date.
 app.get('/api/bookings/taken', async (req, res) => {
@@ -208,7 +226,7 @@ app.post('/api/bookings', async (req, res) => {
 // Admin: view all bookings.
 app.get('/api/bookings', requireAuth, async (req, res) => {
   const db = await readDB();
-  const sorted = [...db.bookings].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const sorted = [...db.bookings].sort(compareBookings);
   res.json(sorted);
 });
 

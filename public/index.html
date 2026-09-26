@@ -15,6 +15,7 @@
   <div class="nav-inner">
     <a href="index.html" class="brand" id="brandLink">
       <img id="brandLogo" src="vj-logo.png" alt="VJ Signature Salon" style="height:44px; width:auto; display:block;">
+      <span id="brandNameText"></span>
     </a>
     <nav class="links" id="navLinks">
       <a href="#team">Stylists</a>
@@ -122,8 +123,9 @@
         <div class="label">WhatsApp</div>
         <div class="value"><a href="#" id="contactWa">Message us</a></div>
       </div>
+      <a href="#" id="directionsBtn" class="btn btn-primary" target="_blank" rel="noopener" style="display:none; margin-top:20px;">Get directions</a>
     </div>
-    <div class="map-box">Embed a Google Maps location or a photo of your storefront here</div>
+    <div class="map-box" id="mapBox"></div>
   </div>
 </section>
 
@@ -131,6 +133,7 @@
   <div class="wrap footer-row">
     <a href="index.html" class="brand" id="footerBrand">
       <img src="vj-logo.png" alt="VJ Signature Salon" style="height:38px; width:auto; display:block;">
+      <span id="footerBrandNameText"></span>
     </a>
     <div class="footer-links">
       <a href="#team">Stylists</a>
@@ -189,13 +192,52 @@
         document.getElementById(id).href = waLink(s.whatsappBotNumber || s.phone, 'Hi');
       });
 
+      document.getElementById('brandNameText').textContent = s.salonName;
+      document.getElementById('footerBrandNameText').textContent = s.salonName;
+
       if (s.logoUrl) {
         const logo = document.getElementById('brandLogo');
         logo.src = s.logoUrl;
         logo.alt = s.salonName + ' logo';
       }
+
+      renderMap(s);
     } catch (e) {
       console.error('Failed to load settings', e);
+    }
+  }
+
+  // Map: uses the embed code set in admin Settings, or falls back to a map of the address.
+  function renderMap(s) {
+    const box = document.getElementById('mapBox');
+    const address = (s.address || '').replace(/\s+/g, ' ').trim();
+    let src = '';
+    if (s.mapEmbedUrl && s.mapEmbedUrl.startsWith('https://www.google.com/maps/embed')) {
+      src = s.mapEmbedUrl;
+    } else if (address) {
+      src = 'https://maps.google.com/maps?q=' + encodeURIComponent(address) + '&output=embed';
+    }
+    if (src) {
+      box.innerHTML = '';
+      const frame = document.createElement('iframe');
+      frame.src = src;
+      frame.title = 'Map to ' + (s.salonName || 'the salon');
+      frame.loading = 'lazy';
+      frame.referrerPolicy = 'no-referrer-when-downgrade';
+      frame.setAttribute('allowfullscreen', '');
+      frame.style.cssText = 'width:100%; height:100%; min-height:340px; border:0; display:block; border-radius:inherit;';
+      box.style.padding = '0';
+      box.style.overflow = 'hidden';
+      box.appendChild(frame);
+    }
+
+    const btn = document.getElementById('directionsBtn');
+    const link = (s.mapLink && /^https:\/\//i.test(s.mapLink))
+      ? s.mapLink
+      : (address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address) : '');
+    if (link) {
+      btn.href = link;
+      btn.style.display = 'inline-flex';
     }
   }
 

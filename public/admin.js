@@ -423,6 +423,8 @@ async function loadSettings() {
   document.getElementById('setTagline').value = s.tagline || '';
   document.getElementById('setHeroDesc').value = s.heroDescription || '';
   document.getElementById('setAddress').value = s.address || '';
+  document.getElementById('setMapEmbed').value = s.mapEmbedUrl || '';
+  document.getElementById('setMapLink').value = s.mapLink || '';
   document.getElementById('setPhone').value = s.phone || '';
   document.getElementById('setPhoneDisplay').value = s.phoneDisplay || '';
   document.getElementById('setHours').value = s.hours || '';
@@ -439,9 +441,37 @@ function updateDepositFieldVisibility() {
 }
 document.getElementById('setDepositEnabled').addEventListener('change', updateDepositFieldVisibility);
 
+// Accepts either the full <iframe ...> code from Google Maps or just its src URL.
+// Returns '' for empty, the embed URL if valid, or null if it's not a Google Maps embed.
+function extractMapEmbedUrl(raw) {
+  const value = (raw || '').trim();
+  if (!value) return '';
+  const match = value.match(/src\s*=\s*["']([^"']+)["']/i);
+  const url = (match ? match[1] : value).replace(/&amp;/g, '&');
+  return url.startsWith('https://www.google.com/maps/embed') ? url : null;
+}
+
 document.getElementById('settingsForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const msgEl = document.getElementById('settingsMsg');
+  const mapEmbedUrl = extractMapEmbedUrl(document.getElementById('setMapEmbed').value);
+  if (mapEmbedUrl === null) {
+    msgEl.textContent = 'That map code doesn\'t look right. In Google Maps use Share → Embed a map → Copy HTML, and paste all of it.';
+    msgEl.style.color = 'var(--danger, #b3261e)';
+    msgEl.style.display = 'block';
+    return;
+  }
+  const mapLink = document.getElementById('setMapLink').value.trim();
+  if (mapLink && !/^https:\/\//i.test(mapLink)) {
+    msgEl.textContent = 'The Google Maps link should start with https://';
+    msgEl.style.color = 'var(--danger, #b3261e)';
+    msgEl.style.display = 'block';
+    return;
+  }
+  msgEl.style.color = '';
   const payload = {
+    mapEmbedUrl,
+    mapLink,
     salonName: document.getElementById('setName').value,
     area: document.getElementById('setArea').value,
     tagline: document.getElementById('setTagline').value,
@@ -455,7 +485,6 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
     depositAmount: parseFloat(document.getElementById('setDepositAmount').value) || 50,
     logoUrl: document.getElementById('setLogo').value
   };
-  const msgEl = document.getElementById('settingsMsg');
   try {
     const res = await fetch('/api/settings', {
       method: 'PUT',

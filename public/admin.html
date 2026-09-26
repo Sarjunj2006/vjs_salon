@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="ledger/ledger.css">
 </head>
 <body>
 
@@ -46,6 +47,7 @@
         <button class="admin-tab" data-tab="team">Team</button>
         <button class="admin-tab" data-tab="settings">Settings</button>
         <button class="admin-tab" data-tab="botmessages">Bot Messages</button>
+        <button class="admin-tab" data-tab="ledger">Ledger</button>
       </div>
 
       <!-- BOOKINGS -->
@@ -123,6 +125,16 @@
             <div class="field"><label>Tagline (hero headline)</label><input type="text" id="setTagline"></div>
             <div class="field"><label>Hero description</label><textarea id="setHeroDesc"></textarea></div>
             <div class="field"><label>Full address</label><textarea id="setAddress"></textarea></div>
+            <div class="field">
+              <label>Google Maps embed code (Google Maps → Share → Embed a map → Copy HTML)</label>
+              <textarea id="setMapEmbed" rows="3" placeholder='<iframe src="https://www.google.com/maps/embed?pb=..." ...></iframe>'></textarea>
+              <div class="field-hint">Paste the whole code. If left empty, the website shows a map of the address above.</div>
+            </div>
+            <div class="field">
+              <label>Google Maps link (for the "Get directions" button)</label>
+              <input type="text" id="setMapLink" placeholder="https://maps.app.goo.gl/...">
+              <div class="field-hint">Google Maps → Share → Copy link. If left empty, the button searches the address above.</div>
+            </div>
             <div class="form-row">
               <div class="field"><label>Phone (with country code, e.g. +919361285562)</label><input type="text" id="setPhone"></div>
               <div class="field"><label>Phone display text</label><input type="text" id="setPhoneDisplay"></div>
@@ -161,6 +173,27 @@
             <div class="success-msg" id="settingsMsg"></div>
           </form>
         </div>
+
+        <!-- BOOKINGS PAGE (separate module: public/bookings/bookings-admin.js) -->
+        <div class="form-card" id="bkAdminCard">
+          <h3>Bookings page</h3>
+          <p style="color:var(--text-soft); font-size:0.9rem; margin-bottom:12px;">
+            A separate page where someone can view bookings and mark them completed, using its own password. They cannot cancel bookings or open this admin panel.
+          </p>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+            <code id="bkAdminLink" style="padding:6px 10px; background:rgba(0,0,0,0.05); border-radius:6px; word-break:break-all;"></code>
+            <button type="button" class="btn btn-ghost btn-small" id="bkAdminCopy">Copy link</button>
+          </div>
+          <form id="bkAdminForm">
+            <div class="field">
+              <label for="bkAdminPw">New bookings password</label>
+              <input type="password" id="bkAdminPw" minlength="4" required autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-small">Save bookings password</button>
+            <p id="bkAdminStatus" style="color:var(--text-soft); font-size:0.85rem; margin-top:10px;"></p>
+            <div class="success-msg" id="bkAdminMsg"></div>
+          </form>
+        </div>
       </div>
 
       <!-- BOT MESSAGES -->
@@ -178,10 +211,17 @@
         <div class="success-msg" id="botMessagesMsg"></div>
       </div>
 
+      <!-- LEDGER (separate module: public/ledger/ledger-admin.js) -->
+      <div class="admin-panel" id="panel-ledger">
+        <div id="ledgerRoot"></div>
+      </div>
+
     </div>
   </div>
 </div>
 
 <script src="admin.js"></script>
+<script src="ledger/ledger-admin.js"></script>
+<script src="bookings/bookings-admin.js"></script>
 </body>
 </html>
